@@ -1994,15 +1994,6 @@ def run(
         )
         analysis_file = analysis.run()
 
-        # Confirm to continue to organization
-        if not auto_continue:
-            if not MacOSDialogs.confirm(
-                "Continue with Organization?",
-                "Analysis complete. Generate organization plan?"
-            ):
-                console.print("[yellow]Cancelled by user.[/yellow]")
-                return
-
         # Pass 3: Organization
         organization = OrganizationPass(
             analysis_file=analysis_file,
