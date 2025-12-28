@@ -1051,7 +1051,17 @@ class LLMManager:
             response = self.ocr_model.invoke([message])
             elapsed = time.time() - start_time
 
-            text = response.content
+            # Handle response content - can be string or list of content blocks
+            response_content = response.content
+            if isinstance(response_content, list):
+                # Extract text from content blocks (Gemini-style response)
+                text = "".join(
+                    block.get("text", "") if isinstance(block, dict) else str(block)
+                    for block in response_content
+                )
+            else:
+                text = response_content
+
             tokens_in, tokens_out = self._extract_token_usage(response)
 
             return text, tokens_in, tokens_out, elapsed
@@ -1077,7 +1087,17 @@ class LLMManager:
             response = self.analysis_model.invoke([message])
             elapsed = time.time() - start_time
 
-            response_text = response.content
+            # Handle response content - can be string or list of content blocks
+            response_content = response.content
+            if isinstance(response_content, list):
+                # Extract text from content blocks (Gemini-style response)
+                response_text = "".join(
+                    block.get("text", "") if isinstance(block, dict) else str(block)
+                    for block in response_content
+                )
+            else:
+                response_text = response_content
+
             tokens_in, tokens_out = self._extract_token_usage(response)
 
             # Parse JSON response
@@ -1114,7 +1134,17 @@ class LLMManager:
             response = self.organizer_model.invoke([message])
             elapsed = time.time() - start_time
 
-            text = response.content
+            # Handle response content - can be string or list of content blocks
+            response_content = response.content
+            if isinstance(response_content, list):
+                # Extract text from content blocks (Gemini-style response)
+                text = "".join(
+                    block.get("text", "") if isinstance(block, dict) else str(block)
+                    for block in response_content
+                )
+            else:
+                text = response_content
+
             tokens_in, tokens_out = self._extract_token_usage(response)
 
             return text, tokens_in, tokens_out, elapsed
