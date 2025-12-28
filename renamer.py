@@ -169,27 +169,8 @@ def load_config(config_path: Path | None = None) -> RenamerConfig:
     with open(config_file) as f:
         raw_config = yaml.safe_load(f)
 
-    # Expand environment variables in api_key fields
-    if "models" in raw_config:
-        for model in raw_config["models"]:
-            if "api_key" in model and model["api_key"]:
-                try:
-                    model["api_key"] = expand_env_vars(model["api_key"])
-                except ValueError:
-                    # If env var not set, try standard fallback env vars
-                    provider = model.get("provider", "")
-                    fallback_vars = {
-                        "anthropic": "ANTHROPIC_API_KEY",
-                        "openai": "OPENAI_API_KEY",
-                        "google": "GOOGLE_API_KEY",
-                        "xai": "XAI_API_KEY",
-                    }
-                    if provider in fallback_vars:
-                        fallback = os.environ.get(fallback_vars[provider])
-                        if fallback:
-                            model["api_key"] = fallback
-                        else:
-                            raise
+    # Keep api_key values as-is during loading; they will be expanded lazily
+    # when the model is actually used (in _create_model)
 
     return RenamerConfig(**raw_config)
 
@@ -444,6 +425,10 @@ class MacOSDialogs:
                 alert.addButtonWithTitle_(button)
 
             result = alert.runModal()
+
+            # Explicitly close the alert window and deactivate the app
+            alert.window().orderOut_(None)
+
             return result - NSAlertFirstButtonReturn
         except ImportError:
             console.print(f"\n[bold]{title}[/bold]")
@@ -516,7 +501,12 @@ class MacOSDialogs:
 
             alert.setAccessoryView_(accessory)
 
-            if alert.runModal() == NSAlertFirstButtonReturn:
+            result = alert.runModal()
+
+            # Explicitly close the alert window
+            alert.window().orderOut_(None)
+
+            if result == NSAlertFirstButtonReturn:
                 max_str = max_field.stringValue()
                 return {
                     "recurse": recurse_check.state() == NSOnState,
@@ -820,9 +810,42 @@ class LLMManager:
                 self._ollama_client = ollama.Client()
         return self._ollama_client
 
+    def _resolve_api_key(self, model_def: ModelDefinition) -> str | None:
+        """Resolve API key, expanding environment variables if needed."""
+        if not model_def.api_key:
+            return None
+
+        api_key = model_def.api_key
+
+        # Try to expand environment variable syntax ${VAR_NAME}
+        if "${" in api_key:
+            try:
+                api_key = expand_env_vars(api_key)
+            except ValueError:
+                # If env var not set, try standard fallback env vars
+                fallback_vars = {
+                    "anthropic": "ANTHROPIC_API_KEY",
+                    "openai": "OPENAI_API_KEY",
+                    "google": "GOOGLE_API_KEY",
+                    "xai": "XAI_API_KEY",
+                }
+                fallback = os.environ.get(fallback_vars.get(model_def.provider, ""))
+                if fallback:
+                    api_key = fallback
+                else:
+                    raise ValueError(
+                        f"API key not set for model '{model_def.name}'. "
+                        f"Set the environment variable or update your config."
+                    )
+
+        return api_key
+
     def _create_model(self, model_name: str) -> BaseChatModel:
         """Factory method to create LangChain model from config."""
         model_def = self.renamer_config.get_model(model_name)
+
+        # Resolve API key lazily
+        api_key = self._resolve_api_key(model_def)
 
         match model_def.provider:
             case "ollama":
@@ -835,13 +858,13 @@ class LLMManager:
                 from langchain_anthropic import ChatAnthropic
                 return ChatAnthropic(
                     model=model_def.model,
-                    api_key=model_def.api_key,
+                    api_key=api_key,
                 )
             case "openai":
                 from langchain_openai import ChatOpenAI
                 kwargs = {
                     "model": model_def.model,
-                    "api_key": model_def.api_key,
+                    "api_key": api_key,
                 }
                 if model_def.endpoint:
                     kwargs["base_url"] = model_def.endpoint
@@ -850,7 +873,7 @@ class LLMManager:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 return ChatGoogleGenerativeAI(
                     model=model_def.model,
-                    google_api_key=model_def.api_key,
+                    google_api_key=api_key,
                 )
             case "google-vertexai":
                 from langchain_google_vertexai import ChatVertexAI
@@ -867,7 +890,7 @@ class LLMManager:
                 from langchain_xai import ChatXAI
                 return ChatXAI(
                     model=model_def.model,
-                    xai_api_key=model_def.api_key,
+                    xai_api_key=api_key,
                 )
             case _:
                 raise ValueError(f"Unknown provider: {model_def.provider}")
