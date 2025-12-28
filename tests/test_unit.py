@@ -110,6 +110,24 @@ class TestModelDefinition:
         assert model.provider == "google"
         assert model.model == "gemini-2.0-flash"
 
+    def test_create_google_vertexai_model(self):
+        """Test creating a Google Vertex AI model definition."""
+        model = ModelDefinition(
+            name="gemini3-flash-vertexai",
+            provider="google-vertexai",
+            model="gemini-3-flash-preview",
+            credentials_file="./vertexai-creds.json",
+            project="my-gcp-project",
+            location="us-central1",
+        )
+
+        assert model.provider == "google-vertexai"
+        assert model.model == "gemini-3-flash-preview"
+        assert model.credentials_file == "./vertexai-creds.json"
+        assert model.project == "my-gcp-project"
+        assert model.location == "us-central1"
+        assert model.api_key is None
+
 
 class TestConfigurationProfile:
     """Tests for the ConfigurationProfile Pydantic model."""

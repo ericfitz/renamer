@@ -10,6 +10,7 @@
 #   "langchain-anthropic>=0.3.0",
 #   "langchain-openai>=0.3.0",
 #   "langchain-google-genai>=4.0.0",
+#   "langchain-google-vertexai>=2.0.0",
 #   "langchain-xai>=0.2.0",
 #   "pyyaml>=6.0",
 #   "pydantic>=2.0",
@@ -78,10 +79,14 @@ logger = logging.getLogger(__name__)
 class ModelDefinition(BaseModel):
     """Definition of a single LLM model with provider configuration."""
     name: str
-    provider: Literal["ollama", "anthropic", "openai", "google", "xai"]
+    provider: Literal["ollama", "anthropic", "openai", "google", "google-vertexai", "xai"]
     model: str
     endpoint: str | None = None
     api_key: str | None = None
+    # Vertex AI specific fields
+    credentials_file: str | None = None
+    project: str | None = None
+    location: str | None = None
 
 
 class ConfigurationProfile(BaseModel):
@@ -223,7 +228,7 @@ models:
     model: gpt-4o
     api_key: ${OPENAI_API_KEY}
 
-  # Google Gemini
+  # Google Gemini via API key (Google AI Studio)
   - name: gemini-flash
     provider: google
     model: gemini-2.0-flash
@@ -233,6 +238,14 @@ models:
     provider: google
     model: gemini-2.5-pro
     api_key: ${GOOGLE_API_KEY}
+
+  # Google Gemini via Vertex AI (service account credentials)
+  - name: gemini3-flash-vertexai
+    provider: google-vertexai
+    model: gemini-3-flash-preview
+    credentials_file: ./path/to/service-account.json
+    project: your-gcp-project-id
+    location: us-central1
 
   # xAI Grok (note: vision not supported via LangChain)
   - name: grok4
@@ -810,6 +823,17 @@ class LLMManager:
                     model=model_def.model,
                     google_api_key=model_def.api_key,
                 )
+            case "google-vertexai":
+                from langchain_google_vertexai import ChatVertexAI
+                kwargs = {"model": model_def.model}
+                if model_def.project:
+                    kwargs["project"] = model_def.project
+                if model_def.location:
+                    kwargs["location"] = model_def.location
+                if model_def.credentials_file:
+                    # Set the environment variable for Google credentials
+                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = model_def.credentials_file
+                return ChatVertexAI(**kwargs)
             case "xai":
                 from langchain_xai import ChatXAI
                 return ChatXAI(
