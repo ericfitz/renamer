@@ -390,7 +390,13 @@ class MacOSDialogs:
     def select_directory(title: str = "Select Directory to Scan") -> Path | None:
         """Show NSOpenPanel for directory selection."""
         try:
-            from Cocoa import NSModalResponseOK, NSOpenPanel
+            from Cocoa import NSApp, NSApplication, NSModalResponseOK, NSOpenPanel
+
+            # Ensure the application is properly initialized and activated
+            # This is necessary when running from a terminal/CLI
+            NSApplication.sharedApplication()
+            NSApp.setActivationPolicy_(0)  # NSApplicationActivationPolicyRegular
+            NSApp.activateIgnoringOtherApps_(True)
 
             panel = NSOpenPanel.openPanel()
             panel.setTitle_(title)
@@ -398,6 +404,9 @@ class MacOSDialogs:
             panel.setCanChooseFiles_(False)
             panel.setAllowsMultipleSelection_(False)
             panel.setCanCreateDirectories_(False)
+
+            # Make the panel appear above other windows
+            panel.setLevel_(3)  # NSFloatingWindowLevel
 
             # Run the panel
             if panel.runModal() == NSModalResponseOK:
@@ -420,7 +429,12 @@ class MacOSDialogs:
         if buttons is None:
             buttons = ["OK"]
         try:
-            from Cocoa import NSAlert, NSAlertFirstButtonReturn
+            from Cocoa import NSAlert, NSAlertFirstButtonReturn, NSApp, NSApplication
+
+            # Ensure the application is properly initialized and activated
+            NSApplication.sharedApplication()
+            NSApp.setActivationPolicy_(0)  # NSApplicationActivationPolicyRegular
+            NSApp.activateIgnoringOtherApps_(True)
 
             alert = NSAlert.alloc().init()
             alert.setMessageText_(title)
@@ -449,7 +463,22 @@ class MacOSDialogs:
     def get_options_dialog() -> dict | None:
         """Show dialog to get processing options."""
         try:
-            from Cocoa import NSAlert, NSAlertFirstButtonReturn, NSButton, NSMakeRect, NSOnState, NSTextField, NSView
+            from Cocoa import (
+                NSAlert,
+                NSAlertFirstButtonReturn,
+                NSApp,
+                NSApplication,
+                NSButton,
+                NSMakeRect,
+                NSOnState,
+                NSTextField,
+                NSView,
+            )
+
+            # Ensure the application is properly initialized and activated
+            NSApplication.sharedApplication()
+            NSApp.setActivationPolicy_(0)  # NSApplicationActivationPolicyRegular
+            NSApp.activateIgnoringOtherApps_(True)
 
             alert = NSAlert.alloc().init()
             alert.setMessageText_("Processing Options")
