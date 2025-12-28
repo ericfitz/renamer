@@ -76,6 +76,38 @@ def ollama_client():
     return ollama.Client()
 
 
+@pytest.fixture
+def test_config_file(project_root):
+    """Create a temporary config file for testing with local models only."""
+    config_content = """
+models:
+  - name: llava-local
+    provider: ollama
+    endpoint: http://localhost:11434
+    model: llava:13b
+
+  - name: llama32-local
+    provider: ollama
+    endpoint: http://localhost:11434
+    model: llama3.2:latest
+
+configurations:
+  - name: local-only
+    description: All local models via Ollama
+    ocr_model: llava-local
+    analysis_model: llama32-local
+    organizer_model: llama32-local
+
+default_configuration: local-only
+"""
+    config_path = project_root / "test_llm_config.yaml"
+    config_path.write_text(config_content)
+    yield config_path
+    # Cleanup
+    if config_path.exists():
+        config_path.unlink()
+
+
 def cleanup_output_files():
     """Remove any output files created during tests."""
     desktop = Path.home() / "Desktop"
@@ -90,7 +122,7 @@ def cleanup_output_files():
 class TestLLMAnalysisQuality:
     """Test the quality of LLM analysis with a second opinion."""
 
-    def test_analyze_sample_and_validate(self, documents_dir, project_root, ollama_client):
+    def test_analyze_sample_and_validate(self, documents_dir, project_root, ollama_client, test_config_file):
         """
         Run analysis on a small sample, then ask another LLM to validate.
         """
@@ -102,7 +134,10 @@ class TestLLMAnalysisQuality:
                 "uv",
                 "run",
                 "renamer.py",
+                "run",
                 str(documents_dir),
+                "--config",
+                str(test_config_file),
                 "--auto-continue",
                 "--no-recurse",
                 "--max-files",
@@ -172,7 +207,7 @@ Be concise."""
         finally:
             cleanup_output_files()
 
-    def test_validate_proposed_names(self, documents_dir, project_root, ollama_client):
+    def test_validate_proposed_names(self, documents_dir, project_root, ollama_client, test_config_file):
         """
         Run analysis and validate that proposed names are sensible.
         """
@@ -184,7 +219,10 @@ Be concise."""
                 "uv",
                 "run",
                 "renamer.py",
+                "run",
                 str(documents_dir),
+                "--config",
+                str(test_config_file),
                 "--auto-continue",
                 "--no-recurse",
                 "--max-files",
@@ -245,7 +283,7 @@ Be concise."""
         finally:
             cleanup_output_files()
 
-    def test_validate_tag_appropriateness(self, documents_dir, project_root, ollama_client):
+    def test_validate_tag_appropriateness(self, documents_dir, project_root, ollama_client, test_config_file):
         """
         Validate that assigned tags are appropriate for the documents.
         """
@@ -256,7 +294,10 @@ Be concise."""
                 "uv",
                 "run",
                 "renamer.py",
+                "run",
                 str(documents_dir),
+                "--config",
+                str(test_config_file),
                 "--auto-continue",
                 "--no-recurse",
                 "--max-files",
@@ -316,7 +357,7 @@ Be concise."""
 class TestOrganizationPlanQuality:
     """Test the quality of the overall organization plan."""
 
-    def test_plan_coherence(self, documents_dir, project_root, ollama_client):
+    def test_plan_coherence(self, documents_dir, project_root, ollama_client, test_config_file):
         """
         Test that the organization plan is coherent and well-structured.
         """
@@ -327,7 +368,10 @@ class TestOrganizationPlanQuality:
                 "uv",
                 "run",
                 "renamer.py",
+                "run",
                 str(documents_dir),
+                "--config",
+                str(test_config_file),
                 "--auto-continue",
                 "--no-recurse",
                 "--max-files",
