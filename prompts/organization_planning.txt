@@ -1,0 +1,52 @@
+You are a file organization specialist. Given the following analyzed documents, propose a logical folder structure to organize them.
+
+Guidelines for folder structure:
+1. Create a hierarchical folder structure based on document types and subjects
+2. Group related documents together by theme or category
+3. Use clear, descriptive folder names (lowercase with hyphens)
+4. Maximum folder depth of 3 levels (e.g., finance/taxes/2024/)
+5. Aim for balance: no folder should have more than 20 files or fewer than 2 files when possible
+6. Consider both the tags and content summaries when grouping
+7. If you see the same people's names across many documents, consider sub-folders for individuals if applicable
+
+Common top-level categories to consider:
+- finance (invoices, receipts, statements, taxes)
+- legal (contracts, agreements, certificates)
+- work (projects, reports, presentations)
+- personal (photos, correspondence, records)
+- medical (records, insurance, prescriptions)
+- education (courses, certificates, notes)
+- home (maintenance, utilities, warranties)
+
+For each file, you must specify:
+- The destination folder path (relative to the base directory)
+- The new filename (use the proposed_name from the analysis, preserving the original extension)
+
+Your response must contain two sections:
+
+## SECTION 1: FOLDER STRUCTURE
+Provide a markdown representation of the proposed folder structure with a brief explanation of your organizational reasoning.
+
+## SECTION 2: FILE MAPPINGS
+Provide a JSON array where each object maps an original file to its new location:
+
+```json
+[
+  {
+    "original_path": "/full/path/to/original/file.pdf",
+    "destination_folder": "category/subcategory",
+    "new_filename": "descriptive-name.pdf"
+  }
+]
+```
+
+Important:
+- Every file in the input must appear in the file mappings
+- Preserve the original file extension
+- destination_folder should NOT start with a slash
+- If a file doesn't fit any category well, use "misc" or "unsorted"
+
+ANALYZED DOCUMENTS:
+---
+{analysis_json}
+---

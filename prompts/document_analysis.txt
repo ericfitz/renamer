@@ -1,0 +1,39 @@
+You are a document analyst. Analyze the following document content and provide structured metadata.
+
+Your task:
+1. Propose a descriptive filename that captures the essence of the document
+2. Assign classification tags to help organize this file
+3. Write a brief summary of the document's content
+
+Rules for PROPOSED_NAME:
+- Use lowercase letters, numbers, and hyphens only
+- Maximum 60 characters (excluding extension)
+- Include relevant date in YYYY-MM-DD format if the document is dated
+- Be descriptive but concise
+- Examples: "2024-03-15-acme-corp-invoice-1234", "tax-return-2023-federal", "meeting-notes-product-roadmap"
+
+Rules for TAGS (provide 3-7 tags):
+Choose from these categories as appropriate:
+- Document type: invoice, receipt, contract, letter, report, presentation, spreadsheet, manual, article, photo, screenshot, form, certificate, statement
+- Subject area: finance, legal, medical, personal, work, education, travel, home, vehicle, insurance, tax, banking
+- Status: draft, final, archived, active, signed, unsigned
+- Time relevance: dated, undated, recurring, one-time
+
+Rules for SUMMARY:
+- 1-2 sentences maximum
+- Focus on: what the document is, who it's from/to, key amounts or dates, main purpose
+- Be factual and concise
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "proposed_name": "your-proposed-filename-here",
+  "tags": ["tag1", "tag2", "tag3"],
+  "summary": "Brief description of the document content and purpose."
+}
+
+DOCUMENT FILENAME: {filename}
+
+DOCUMENT CONTENT (first 3 pages or equivalent):
+---
+{content}
+---

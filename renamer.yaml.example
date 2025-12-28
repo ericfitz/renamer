@@ -1,0 +1,83 @@
+# Renamer Configuration File
+# Model definitions - each model has a unique name and provider config
+
+models:
+  # Local Ollama models
+  - name: llava-local
+    provider: ollama
+    endpoint: http://localhost:11434
+    model: llava:13b
+
+  - name: llama32-local
+    provider: ollama
+    endpoint: http://localhost:11434
+    model: llama3.2:latest
+
+  - name: gemma3-local
+    provider: ollama
+    endpoint: http://localhost:11434
+    model: gemma3:latest
+
+  # Anthropic Claude
+  - name: claude-sonnet
+    provider: anthropic
+    model: claude-sonnet-4-5-20250929
+    api_key: ${ANTHROPIC_API_KEY}
+
+  # OpenAI
+  - name: gpt4o
+    provider: openai
+    model: gpt-4o
+    api_key: ${OPENAI_API_KEY}
+
+  # Google Gemini
+  - name: gemini-flash
+    provider: google
+    model: gemini-2.0-flash
+    api_key: ${GOOGLE_API_KEY}
+
+  - name: gemini-pro
+    provider: google
+    model: gemini-2.5-pro
+    api_key: ${GOOGLE_API_KEY}
+
+  # xAI Grok (note: vision not supported via LangChain)
+  - name: grok4
+    provider: xai
+    model: grok-4
+    api_key: ${XAI_API_KEY}
+
+# Named configurations that assign models to roles
+configurations:
+  - name: local-only
+    description: All local models via Ollama
+    ocr_model: llava-local
+    analysis_model: llama32-local
+    organizer_model: gemma3-local
+
+  - name: hybrid-anthropic
+    description: Local OCR, Anthropic analysis
+    ocr_model: llava-local
+    analysis_model: claude-sonnet
+    organizer_model: claude-sonnet
+
+  - name: hybrid-gemini
+    description: Gemini for everything (excellent vision)
+    ocr_model: gemini-flash
+    analysis_model: gemini-flash
+    organizer_model: gemini-pro
+
+  - name: cloud-anthropic
+    description: All Anthropic Claude
+    ocr_model: claude-sonnet
+    analysis_model: claude-sonnet
+    organizer_model: claude-sonnet
+
+  - name: budget-grok
+    description: Grok for text analysis, local OCR (Grok vision not supported)
+    ocr_model: llava-local
+    analysis_model: grok4
+    organizer_model: grok4
+
+# Default configuration to use
+default_configuration: local-only

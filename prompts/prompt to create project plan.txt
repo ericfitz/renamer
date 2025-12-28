@@ -1,0 +1,50 @@
+planning prompt
+
+I want to create a python application.  The purpose of the application is to rename and organize my files locally.  I want you to help me create a plan and document the plan.  I'd like you to discuss and confirm every major architectural decision with me, such as choice of libraries/dependencies, etc.
+
+We will always run the python app with uv run and we'll use uv for package management; we won't create a virtual environment.  I prefer inline comments in the python file to inform uv of dependencies, but we can also create a pyproject.toml.
+
+The application will prompt the user for a directory to scan, whether to process subdirectories, and include and exclude patterns, and a maximum number of files to process.   Include and exclude patterns are regexes.  The default include pattern is ".*".   The default exclude pattern is null/empty, e.g. we won't exclude any files by default.  I prefer the application to show the current os file picker dialog to pick the directory, and to show a simple dialog to get subdirectory preference, maximum number of files to process, and include and exclude patterns, but also have the ability to specify directory, include pattern, exclude pattern, max number of files to process, and whether or not to process subdirectories, as command line parameters. 
+
+The application will run in several passes.
+
+The first pass will enumerate all the files in the selected directory (and subdirectories if included).  For each file, it will match the file name against the include pattern, and if there is no match, it will exclude the file.  If the file hasn't already been excluded, it will then match the file name against the exclude pattern, and if there is a match, it will exclude the file.  It will maintain a list of included files, writing the list to a temp file.  If the user specified a maximum number of files to process, the application will stop processing files once the list of included files contains the number of files specified by the user.
+
+At the end of the first pass, the application will pause and display temp file containing the list of included files to the user, and prompt the user whether or not to continue.  There will be a command line switch to override this and proceed without prompting or waiting for confirmation.  If the user chooses not to continue, the program will terminate, otherwise the program will continue.
+
+For the second pass, the application will iterate through the list of included files.  We will create a second temporary file with information from the second pass.  The file will be a structured text file of some sort, and we will append to it for each file.
+
+Keep the user up to date during this process; on the screen print the file being processed and the processing step being performed.
+
+I want to support pdf, markdown and text files, images (jpeg and png), presentations (keynote and excel), spreadsheets (numbers and xlsx), and word processing documents (doc, docx and pages).  We can use common open source python libraries if necessary.
+
+For images or image-oriented pdfs without textual representations, we will OCR the document (using an LLM, see below) and add the OCR text to the document, saving the updated document in place.  Do not overwrite read only files.  If we send the document for OCR, keep track of the time that it took and the numbers of tokens used; we'll write them to the temp file shortly.
+
+After we OCR the file, or if the file doesn't need OCR, then  the program will then submit the file name and the file contents to an LLM.    If the files are large or multi-page documents, I only want to send the first 3 pages to the LLM.   We will submit the file with a prompt (store the prompt(s) we use in separate text files that we can edit and fine tune them without changing the python code).
+
+We need to author a prompt that instructs the LLM to read the provided file and propose a name and some classification tags for the file, and gives a very brief prose summary of the file contents.  classification tags will be single words that will be used in a later step to decide how to group the files together into directories; the goal is to organize the many files i have.  The summary is there so I can judge the fitness of the proposed name and the tags, without having to read the file myself.
+
+We will prefer to use common open source LLM libraries, perhaps langchain or you can propose another if there is a better one.  We want to allow configurable providers, but initially we will use ollama locally.  If ollama is not running, you can start it using the ollama cli.  You may also pull and use ollama models.  Keep in mind my local system only has 64GB of shared memory, when selecting models.  We will try to use the best models available for different tasks - OCR, document analysis, and image analysis - we don't have to use the same model for every task.
+
+As the model returns an answer, we will write a record to the second temporary file, containing
+original file path
+original file name
+OCR model name (empty string if OCR was not performed)
+OCR time taken (mm:ss.sss) (zero this field if OCR was not performed, but include it)
+OCR token usage (input and output) (zero these fields if OCR was not performed, but include them)
+proposed new file name
+proposed new file classification tag(s)
+summary
+analysis model name
+analysis time taken (mm:ss.sss) 
+token usage (input and output)
+
+Then proceed to the next file, until all files in the include file list have been processed.
+
+The third pass will use an LLM to analyze the second temporary file, to propose a file organization structure.  We need a prompt for this step; again store it in its own file so we can tweak it.  The prompt should describe the contents of the second temp file.  The LLM will have the original paths, the file names (which imply file type), a summary of the contents of the file, and so forth.  The LLM will be expected to produce a markdown document with its proposed file and folder layout, and explain its reasoning for its organizational choice.
+
+Have the LLM do the analysis, and then write the markdown file as the final output file on the user's desktop, AND write two scripts: one that will create the new folder structure, and rename and move the files into the correct place, and a second script that will revert those changes.  The scripts can be bash or python.  You can write reusable scripts that use the LLM's output file(s) as inputs, or the LLM can write one-time scripts as part of the output.
+
+Please help me plan, and any tweaks, improvements, edge cases, etc. that we need to consider and address.  Ask any questions you have.  We will iterate several times until we reach a final agreed-on plan, and then we'll write that plan to the project folder as a markdown file.
+
+We are not making any estimates about effort or schedule.
