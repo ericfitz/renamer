@@ -222,7 +222,10 @@ def load_family_context(config_path: Path | None = None) -> str:
         # Format family members into readable context
         members = []
         for person in data["family"]:
-            name_info = person.get("name", person)  # Handle both nested and flat structure
+            if person is None:
+                continue
+            # Handle both nested (name: {first: ...}) and flat ({name: null, first: ...}) structures
+            name_info = person.get("name") if isinstance(person.get("name"), dict) else person
             parts = []
 
             first = name_info.get("first", "")
@@ -233,8 +236,10 @@ def load_family_context(config_path: Path | None = None) -> str:
             full_name = " ".join(filter(None, [first, middle, last]))
             if full_name:
                 parts.append(full_name)
-            if nickname and nickname != first:
-                parts.append(f'(nickname: "{nickname}")')
+            # Use nickname if provided, otherwise fall back to first name
+            display_nickname = nickname or first
+            if display_nickname:
+                parts.append(f'(nickname: "{display_nickname}")')
 
             if parts:
                 members.append(" ".join(parts))
