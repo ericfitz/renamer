@@ -64,12 +64,18 @@ app = typer.Typer(
     no_args_is_help=False,
 )
 
-# Configure logging
+# Configure logging - suppress noisy third-party loggers
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Suppress HTTP request logs from httpx (used by Gemini client)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+# Suppress Google GenAI AFC (Automatic Function Calling) logs
+logging.getLogger("google.genai").setLevel(logging.WARNING)
+logging.getLogger("google.generativeai").setLevel(logging.WARNING)
 
 
 # =============================================================================
@@ -175,6 +181,73 @@ def load_config(config_path: Path | None = None) -> RenamerConfig:
     return RenamerConfig(**raw_config)
 
 
+def load_family_context(config_path: Path | None = None) -> str:
+    """
+    Load optional family.yaml file and format as context string.
+
+    Search order:
+    1. Same directory as config file (if provided)
+    2. ./family.yaml in current directory
+    3. ~/.config/renamer/family.yaml
+
+    Returns empty string if file not found (this is not an error).
+    """
+    search_paths = []
+
+    if config_path:
+        # Look in same directory as config file
+        search_paths.append(config_path.parent / "family.yaml")
+
+    # Default search locations
+    search_paths.append(Path.cwd() / "family.yaml")
+    search_paths.append(Path.home() / ".config" / "renamer" / "family.yaml")
+
+    family_file = None
+    for path in search_paths:
+        if path.exists():
+            family_file = path
+            break
+
+    if family_file is None:
+        return ""
+
+    try:
+        with open(family_file) as f:
+            data = yaml.safe_load(f)
+
+        if not data or "family" not in data:
+            return ""
+
+        # Format family members into readable context
+        members = []
+        for person in data["family"]:
+            name_info = person.get("name", person)  # Handle both nested and flat structure
+            parts = []
+
+            first = name_info.get("first", "")
+            middle = name_info.get("middle", "")
+            last = name_info.get("last", "")
+            nickname = name_info.get("nickname", "")
+
+            full_name = " ".join(filter(None, [first, middle, last]))
+            if full_name:
+                parts.append(full_name)
+            if nickname and nickname != first:
+                parts.append(f'(nickname: "{nickname}")')
+
+            if parts:
+                members.append(" ".join(parts))
+
+        if not members:
+            return ""
+
+        return "Family members: " + "; ".join(members)
+
+    except Exception as e:
+        logger.warning(f"Could not load family.yaml: {e}")
+        return ""
+
+
 def generate_example_config() -> str:
     """Generate an example configuration file."""
     return '''# Renamer Configuration File
@@ -276,7 +349,7 @@ class Config:
     """Runtime application configuration (non-LLM settings)."""
     prompts_dir: Path = field(default_factory=lambda: Path(__file__).parent / "prompts")
     temp_dir: Path = field(default_factory=lambda: Path(tempfile.gettempdir()) / "renamer")
-    output_dir: Path = field(default_factory=lambda: Path.home() / "Desktop")
+    output_dir: Path = field(default_factory=lambda: Path.home() / "Downloads")
     max_content_chars: int = 50000  # Max characters to send to LLM
     max_pages: int = 3  # Max pages to extract from documents
 
@@ -1261,6 +1334,7 @@ class AnalysisPass:
         llm_manager: LLMManager,
         dry_run: bool = False,
         resume: bool = False,
+        family_context: str = "",
     ):
         self.discovery_file = discovery_file
         self.config = config
@@ -1268,11 +1342,24 @@ class AnalysisPass:
         self.llm = llm_manager
         self.dry_run = dry_run
         self.resume = resume
+        self.family_context = family_context
         self.extractor = ContentExtractor(config)
 
         # Load prompts
         self.ocr_prompt = self._load_prompt("ocr_vision.txt")
         self.analysis_prompt = self._load_prompt("document_analysis.txt")
+
+        # Inject family context into analysis prompt if available
+        if self.family_context:
+            self.analysis_prompt = self._inject_family_context(self.analysis_prompt)
+
+    def _inject_family_context(self, prompt: str) -> str:
+        """Inject family context into prompt before the document content."""
+        context_block = f"\nCONTEXT:\n{self.family_context}\n"
+        # Insert before "DOCUMENT FILENAME:" if present, otherwise append
+        if "DOCUMENT FILENAME:" in prompt:
+            return prompt.replace("DOCUMENT FILENAME:", context_block + "DOCUMENT FILENAME:")
+        return prompt + context_block
 
     def _load_prompt(self, filename: str) -> str:
         """Load prompt from file."""
@@ -1456,6 +1543,7 @@ class OrganizationPass:
         temp_manager: TempFileManager,
         llm_manager: LLMManager,
         dry_run: bool = False,
+        family_context: str = "",
     ):
         self.analysis_file = analysis_file
         self.base_directory = base_directory
@@ -1463,8 +1551,21 @@ class OrganizationPass:
         self.temp_manager = temp_manager
         self.llm = llm_manager
         self.dry_run = dry_run
+        self.family_context = family_context
 
         self.org_prompt = self._load_prompt("organization_planning.txt")
+
+        # Inject family context into organization prompt if available
+        if self.family_context:
+            self.org_prompt = self._inject_family_context(self.org_prompt)
+
+    def _inject_family_context(self, prompt: str) -> str:
+        """Inject family context into prompt before the analysis data."""
+        context_block = f"\nCONTEXT:\n{self.family_context}\n"
+        # Insert before "ANALYZED DOCUMENTS:" if present, otherwise append
+        if "ANALYZED DOCUMENTS:" in prompt:
+            return prompt.replace("ANALYZED DOCUMENTS:", context_block + "ANALYZED DOCUMENTS:")
+        return prompt + context_block
 
     def _load_prompt(self, filename: str) -> str:
         """Load prompt from file."""
@@ -1770,6 +1871,11 @@ def run(
     # Initialize runtime config (non-LLM settings)
     config = Config()
 
+    # Load optional family context
+    family_context = load_family_context(config_path)
+    if family_context:
+        console.print(f"[dim]Loaded family context: {family_context}[/dim]")
+
     # Initialize temp manager
     temp_manager = TempFileManager(config)
     temp_manager.initialize()
@@ -1878,6 +1984,7 @@ def run(
             llm_manager=llm_manager,
             dry_run=dry_run,
             resume=resume,
+            family_context=family_context,
         )
         analysis_file = analysis.run()
 
@@ -1898,6 +2005,7 @@ def run(
             temp_manager=temp_manager,
             llm_manager=llm_manager,
             dry_run=dry_run,
+            family_context=family_context,
         )
         plan_path, apply_path, revert_path = organization.run()
 
@@ -1905,7 +2013,7 @@ def run(
         console.print("\n" + "=" * 60)
         console.print("[bold green]Processing Complete![/bold green]")
         console.print("=" * 60)
-        console.print("\nOutput files saved to Desktop:")
+        console.print("\nOutput files saved to Downloads:")
         if plan_path:
             console.print(f"  - Organization plan: {plan_path.name}")
         if apply_path:

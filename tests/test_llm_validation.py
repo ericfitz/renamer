@@ -110,9 +110,9 @@ default_configuration: local-only
 
 def cleanup_output_files():
     """Remove any output files created during tests."""
-    desktop = Path.home() / "Desktop"
+    downloads = Path.home() / "Downloads"
     for pattern in ["file_organization_plan_*.md", "apply_changes_*.py", "revert_changes_*.py"]:
-        for f in desktop.glob(pattern):
+        for f in downloads.glob(pattern):
             try:
                 f.unlink()
             except OSError:
@@ -162,8 +162,8 @@ class TestLLMAnalysisQuality:
             pytest.skip("Could not find analysis output in stdout")
 
         # Read the organization plan
-        desktop = Path.home() / "Desktop"
-        plan_files = list(desktop.glob("file_organization_plan_*.md"))
+        downloads = Path.home() / "Downloads"
+        plan_files = list(downloads.glob("file_organization_plan_*.md"))
 
         if not plan_files:
             pytest.skip("No plan file generated")
@@ -240,8 +240,8 @@ Be concise."""
             pytest.skip(f"Renamer failed: {result.stderr}")
 
         # Read the plan file to extract proposed names
-        desktop = Path.home() / "Desktop"
-        plan_files = list(desktop.glob("file_organization_plan_*.md"))
+        downloads = Path.home() / "Downloads"
+        plan_files = list(downloads.glob("file_organization_plan_*.md"))
 
         if not plan_files:
             pytest.skip("No plan file generated")
@@ -312,8 +312,8 @@ Be concise."""
         if result.returncode != 0:
             pytest.skip(f"Renamer failed: {result.stderr}")
 
-        desktop = Path.home() / "Desktop"
-        plan_files = list(desktop.glob("file_organization_plan_*.md"))
+        downloads = Path.home() / "Downloads"
+        plan_files = list(downloads.glob("file_organization_plan_*.md"))
 
         if not plan_files:
             pytest.skip("No plan file generated")
@@ -386,8 +386,8 @@ class TestOrganizationPlanQuality:
         if result.returncode != 0:
             pytest.skip(f"Renamer failed: {result.stderr}")
 
-        desktop = Path.home() / "Desktop"
-        plan_files = list(desktop.glob("file_organization_plan_*.md"))
+        downloads = Path.home() / "Downloads"
+        plan_files = list(downloads.glob("file_organization_plan_*.md"))
 
         if not plan_files:
             pytest.skip("No plan file generated")

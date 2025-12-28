@@ -67,9 +67,9 @@ default_configuration: local-only
 
 def cleanup_output_files():
     """Remove any output files created during tests."""
-    desktop = Path.home() / "Desktop"
+    downloads = Path.home() / "Downloads"
     for pattern in ["file_organization_plan_*.md", "apply_changes_*.py", "revert_changes_*.py"]:
-        for f in desktop.glob(pattern):
+        for f in downloads.glob(pattern):
             try:
                 f.unlink()
             except OSError:
@@ -336,10 +336,10 @@ class TestDryRunWithDocuments:
         assert "revert_changes" in result.stdout
 
         # Verify files were actually created
-        desktop = Path.home() / "Desktop"
-        plan_files = list(desktop.glob("file_organization_plan_*.md"))
-        apply_files = list(desktop.glob("apply_changes_*.py"))
-        revert_files = list(desktop.glob("revert_changes_*.py"))
+        downloads = Path.home() / "Downloads"
+        plan_files = list(downloads.glob("file_organization_plan_*.md"))
+        apply_files = list(downloads.glob("apply_changes_*.py"))
+        revert_files = list(downloads.glob("revert_changes_*.py"))
 
         assert len(plan_files) >= 1, "Plan file should be created"
         assert len(apply_files) >= 1, "Apply script should be created"
@@ -494,8 +494,8 @@ class TestOutputValidation:
         assert result.returncode == 0
 
         # Find and validate the apply script
-        desktop = Path.home() / "Desktop"
-        apply_files = list(desktop.glob("apply_changes_*.py"))
+        downloads = Path.home() / "Downloads"
+        apply_files = list(downloads.glob("apply_changes_*.py"))
 
         if apply_files:
             apply_script = apply_files[0]
@@ -537,8 +537,8 @@ class TestOutputValidation:
         assert result.returncode == 0
 
         # Find and validate the revert script
-        desktop = Path.home() / "Desktop"
-        revert_files = list(desktop.glob("revert_changes_*.py"))
+        downloads = Path.home() / "Downloads"
+        revert_files = list(downloads.glob("revert_changes_*.py"))
 
         if revert_files:
             revert_script = revert_files[0]
@@ -580,8 +580,8 @@ class TestOutputValidation:
         assert result.returncode == 0
 
         # Find and check the plan file
-        desktop = Path.home() / "Desktop"
-        plan_files = list(desktop.glob("file_organization_plan_*.md"))
+        downloads = Path.home() / "Downloads"
+        plan_files = list(downloads.glob("file_organization_plan_*.md"))
 
         if plan_files:
             plan_file = plan_files[0]

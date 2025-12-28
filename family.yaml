@@ -1,0 +1,19 @@
+family:
+  - name:
+    first: Robert
+    middle: Eric
+    last: Fitzgerald
+    nickname: Eric
+  - name:
+    first: Rattikan
+    last: Fitzgerald
+    nickname: Nui
+  - name:
+    first: Colin
+    middle: Michael
+    last: Fitzgerald
+    nickname: Colin
+  - name:
+    first: Linda
+    last: Fitzgerald
+    nickname: Linda

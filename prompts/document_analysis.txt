@@ -9,12 +9,13 @@ Rules for PROPOSED_NAME:
 - Use lowercase letters, numbers, and hyphens only
 - Maximum 60 characters (excluding extension)
 - Include relevant date in YYYY-MM-DD format if the document is dated
+- Note that official correspondence often has the date the form template was created at the bottom, or occasionally the top, of the document.  This should not be treated as the document date.
 - Be descriptive but concise
 - Examples: "2024-03-15-acme-corp-invoice-1234", "tax-return-2023-federal", "meeting-notes-product-roadmap"
 
 Rules for TAGS (provide 3-7 tags):
 Choose from these categories as appropriate:
-- Document type: invoice, receipt, contract, letter, report, presentation, spreadsheet, manual, article, photo, screenshot, form, certificate, statement
+- Document type: invoice, receipt, contract, letter, report, presentation, spreadsheet, manual, article, photo, screenshot, form, certificate, statement, meme
 - Subject area: finance, legal, medical, personal, work, education, travel, home, vehicle, insurance, tax, banking
 - Status: draft, final, archived, active, signed, unsigned
 - Time relevance: dated, undated, recurring, one-time
@@ -22,6 +23,7 @@ Choose from these categories as appropriate:
 Rules for SUMMARY:
 - 1-2 sentences maximum
 - Focus on: what the document is, who it's from/to, key amounts or dates, main purpose
+- If the document includes the name of a family member, include the family member's nickname
 - Be factual and concise
 
 Respond ONLY with valid JSON in this exact format:
