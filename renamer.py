@@ -76,6 +76,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 # Suppress Google GenAI AFC (Automatic Function Calling) logs
 logging.getLogger("google.genai").setLevel(logging.WARNING)
 logging.getLogger("google.generativeai").setLevel(logging.WARNING)
+logging.getLogger("google_genai.models").setLevel(logging.WARNING)
 
 
 # =============================================================================
@@ -499,8 +500,13 @@ class MacOSDialogs:
 
             result = alert.runModal()
 
-            # Explicitly close the alert window and deactivate the app
-            alert.window().orderOut_(None)
+            # Explicitly close the alert window and process the event to ensure it disappears
+            window = alert.window()
+            if window:
+                window.orderOut_(None)
+                window.close()
+            # Process pending events to ensure the window is removed from screen
+            NSApp.nextEventMatchingMask_untilDate_inMode_dequeue_(0xFFFFFFFF, None, "kCFRunLoopDefaultMode", False)
 
             return result - NSAlertFirstButtonReturn
         except ImportError:
