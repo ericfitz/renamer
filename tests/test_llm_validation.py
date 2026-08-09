@@ -27,7 +27,10 @@ from pathlib import Path
 
 import pytest
 
-# Try to import ollama to check if it's available
+from tests.ollama_support import ANALYSIS_MODEL, OCR_MODEL, OLLAMA_ENDPOINT, is_running
+
+# The ollama package backs the `ollama_client` fixture below; the daemon probe
+# itself lives in ollama_support so conftest can share it.
 try:
     import ollama
 
@@ -36,22 +39,17 @@ except ImportError:
     OLLAMA_AVAILABLE = False
 
 
-def is_ollama_running() -> bool:
-    """Check if Ollama is running and accessible."""
-    if not OLLAMA_AVAILABLE:
-        return False
-    try:
-        client = ollama.Client()
-        client.list()
-        return True
-    except Exception:
-        return False
-
-
-# Skip all tests in this module if Ollama isn't running
+# Skip all tests in this module if Ollama isn't running.
+#
+# NOTE: this is evaluated at IMPORT time, not at call time. `pytest --ollama`
+# starts the daemon from pytest_configure in tests/conftest.py, which runs
+# before collection imports this module -- that ordering is what lets the guard
+# pass under the flag. Moving this check into a fixture would break it.
 pytestmark = [
     pytest.mark.slow,
-    pytest.mark.skipif(not is_ollama_running(), reason="Ollama is not running"),
+    pytest.mark.skipif(
+        not (OLLAMA_AVAILABLE and is_running()), reason="Ollama is not running"
+    ),
 ]
 
 
@@ -78,25 +76,31 @@ def ollama_client():
 
 @pytest.fixture
 def test_config_file(project_root):
-    """Create a temporary config file for testing with local models only."""
-    config_content = """
-models:
-  - name: llava-local
-    provider: ollama
-    endpoint: http://localhost:11434
-    model: llava:13b
+    """Create a temporary config file for testing with local models only.
 
-  - name: llama32-local
+    Built from the registry in ollama_support so the model tags have exactly
+    one definition -- the same tags conftest checks for before starting.
+    """
+    ocr_alias, ocr_tag = OCR_MODEL
+    analysis_alias, analysis_tag = ANALYSIS_MODEL
+    config_content = f"""
+models:
+  - name: {ocr_alias}
     provider: ollama
-    endpoint: http://localhost:11434
-    model: llama3.2:latest
+    endpoint: {OLLAMA_ENDPOINT}
+    model: {ocr_tag}
+
+  - name: {analysis_alias}
+    provider: ollama
+    endpoint: {OLLAMA_ENDPOINT}
+    model: {analysis_tag}
 
 configurations:
   - name: local-only
     description: All local models via Ollama
-    ocr_model: llava-local
-    analysis_model: llama32-local
-    organizer_model: llama32-local
+    ocr_model: {ocr_alias}
+    analysis_model: {analysis_alias}
+    organizer_model: {analysis_alias}
 
 default_configuration: local-only
 """
