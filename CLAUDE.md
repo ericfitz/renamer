@@ -25,7 +25,11 @@ uv run pytest tests/test_unit.py::TestConfig::test_default_config -v
 
 ## Architecture
 
-This is a single-file Python application (`renamer.py`) using inline uv script dependencies. It processes files in three sequential passes:
+This is a single-file Python application (`renamer.py`). Dependencies are declared once, in `pyproject.toml`, and pinned by `uv.lock` — `renamer.py` deliberately carries no PEP 723 inline metadata block, so `uv run renamer.py` executes against the locked project environment rather than an unlocked ad-hoc one.
+
+Note that `renamer.py` *generates* standalone apply/revert scripts that do carry their own PEP 723 blocks. Their `# /// script` markers are assembled from the `PEP723_OPEN`/`PEP723_CLOSE` constants instead of being written literally, because uv scans a file's raw text for those markers — a literal one at column 0 inside the generator templates would make uv see multiple metadata blocks in `renamer.py` and refuse to run it.
+
+It processes files in three sequential passes:
 
 1. **Discovery Pass** (`DiscoveryPass`): Enumerates files matching include/exclude patterns, writes to `pass1_discovery.jsonl`
 2. **Analysis Pass** (`AnalysisPass`): Extracts content, performs OCR if needed, gets LLM-suggested names/tags/summaries, writes to `pass2_analysis.jsonl`
