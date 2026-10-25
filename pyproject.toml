@@ -3,7 +3,7 @@ name = "renamer"
 version = "0.1.0"
 description = "File renamer and organizer using local LLM analysis"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "typer>=0.27.3",
     "rich>=13.0.0",
@@ -20,7 +20,7 @@ dependencies = [
     "pymupdf>=1.25.0",
     "python-docx>=1.1.0",
     "openpyxl>=3.1.0",
-    "pillow>=11.0.0",
+    "pillow>=13.0.0",
     "send2trash>=1.8.0",
 ]
 
@@ -48,7 +48,7 @@ markers = [
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
